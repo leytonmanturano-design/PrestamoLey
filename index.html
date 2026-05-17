@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reto Mundial 2026 – MundialStikers</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <canvas id="particlesCanvas"></canvas>
+
+  <div id="celebracion" class="celebracion hidden">
+    <canvas id="confettiCanvas"></canvas>
+    <div class="celeb-content">
+      <div class="celeb-trophy">🏆</div>
+      <h2 class="celeb-title">¡COLECCIÓN COMPLETA!</h2>
+      <p class="celeb-sub">Tienes los 48 stickers del Mundial 2026</p>
+      <button class="celeb-btn" id="btnCerrarCeleb">CERRAR</button>
+    </div>
+  </div>
+
+  <header>
+    <div class="header-inner">
+      <div class="logo-wrap">
+        <div class="logo-icon">⚽</div>
+        <div class="logo-text">
+          <span class="logo-reto">RETO</span>
+          <span class="logo-mundial">MUNDIAL</span>
+          <span class="logo-year">2026</span>
+        </div>
+      </div>
+      <div class="header-center">
+        <p class="host-line">🇺🇸 USA &nbsp;·&nbsp; 🇲🇽 MÉXICO &nbsp;·&nbsp; 🇨🇦 CANADÁ</p>
+        <div class="progress-wrap">
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" id="progressBar">
+              <div class="progress-shine"></div>
+            </div>
+          </div>
+          <span class="progress-count" id="progressCount">0 / 48</span>
+        </div>
+        <p class="progress-label" id="progressLabel">Consigue todos los stickers</p>
+      </div>
+      <button class="btn-reset" id="btnReset">↺ Reiniciar</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="groups-grid" id="groupsGrid"></div>
+  </main>
+
+  <footer>
+    <p>⚽ MundialStikers 2026 &nbsp;·&nbsp; Tu progreso se guarda automáticamente</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
