@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Reto Mundial 2026 – MundialStikers</title>
+  <title>PrestamoLey</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -11,52 +11,141 @@
 </head>
 <body>
 
-  <canvas id="particlesCanvas"></canvas>
-
-  <div id="celebracion" class="celebracion hidden">
-    <canvas id="confettiCanvas"></canvas>
-    <div class="celeb-content">
-      <div class="celeb-trophy">🏆</div>
-      <h2 class="celeb-title">¡COLECCIÓN COMPLETA!</h2>
-      <p class="celeb-sub">Tienes los 48 stickers del Mundial 2026</p>
-      <button class="celeb-btn" id="btnCerrarCeleb">CERRAR</button>
+  <!-- MODAL NUEVO PRÉSTAMO -->
+  <div id="modalPrestamo" class="modal hidden">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2>NUEVO PRÉSTAMO</h2>
+        <button class="btn-cerrar" id="btnCerrarModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <label>Nombre del deudor</label>
+          <input type="text" id="inputNombre" placeholder="Ej: Juan Pérez" />
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Monto prestado (S/)</label>
+            <input type="number" id="inputMonto" placeholder="500" min="1" />
+          </div>
+          <div class="field">
+            <label>Fecha del préstamo</label>
+            <input type="date" id="inputFecha" />
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Interés (%)</label>
+            <input type="number" id="inputInteres" placeholder="0" min="0" max="100" />
+          </div>
+          <div class="field">
+            <label>N° de cuotas</label>
+            <input type="number" id="inputCuotas" placeholder="1" min="1" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Notas (opcional)</label>
+          <textarea id="inputNotas" placeholder="Garantía, motivo del préstamo, etc."></textarea>
+        </div>
+        <div class="resumen-cuota" id="resumenCuota"></div>
+        <button class="btn-guardar" id="btnGuardar">💾 GUARDAR PRÉSTAMO</button>
+      </div>
     </div>
   </div>
 
+  <!-- MODAL DETALLE PRÉSTAMO -->
+  <div id="modalDetalle" class="modal hidden">
+    <div class="modal-box modal-box-wide">
+      <div class="modal-header">
+        <h2 id="detalleTitulo">DETALLE</h2>
+        <button class="btn-cerrar" id="btnCerrarDetalle">✕</button>
+      </div>
+      <div class="modal-body" id="detalleBody"></div>
+    </div>
+  </div>
+
+  <!-- MODAL PAGO -->
+  <div id="modalPago" class="modal hidden">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2>REGISTRAR PAGO</h2>
+        <button class="btn-cerrar" id="btnCerrarPago">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <label>Monto pagado (S/)</label>
+          <input type="number" id="inputPagoMonto" placeholder="0" min="1" />
+        </div>
+        <div class="field">
+          <label>Fecha del pago</label>
+          <input type="date" id="inputPagoFecha" />
+        </div>
+        <div class="field">
+          <label>Nota (opcional)</label>
+          <input type="text" id="inputPagoNota" placeholder="Ej: Cuota 1" />
+        </div>
+        <button class="btn-guardar" id="btnGuardarPago">✅ CONFIRMAR PAGO</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast"></div>
+
+  <!-- HEADER -->
   <header>
     <div class="header-inner">
       <div class="logo-wrap">
-        <div class="logo-icon">⚽</div>
+        <span class="logo-icon">💰</span>
         <div class="logo-text">
-          <span class="logo-reto">RETO</span>
-          <span class="logo-mundial">MUNDIAL</span>
-          <span class="logo-year">2026</span>
+          <span class="logo-prestamo">PRESTAMO</span>
+          <span class="logo-ley">LEY</span>
         </div>
       </div>
-      <div class="header-center">
-        <p class="host-line">🇺🇸 USA &nbsp;·&nbsp; 🇲🇽 MÉXICO &nbsp;·&nbsp; 🇨🇦 CANADÁ</p>
-        <div class="progress-wrap">
-          <div class="progress-bar-bg">
-            <div class="progress-bar-fill" id="progressBar">
-              <div class="progress-shine"></div>
-            </div>
-          </div>
-          <span class="progress-count" id="progressCount">0 / 48</span>
+      <div class="header-stats" id="headerStats">
+        <div class="stat-pill">
+          <span class="stat-label">PRESTADO</span>
+          <span class="stat-val" id="statPrestado">S/ 0</span>
         </div>
-        <p class="progress-label" id="progressLabel">Consigue todos los stickers</p>
+        <div class="stat-pill">
+          <span class="stat-label">COBRADO</span>
+          <span class="stat-val green" id="statCobrado">S/ 0</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-label">PENDIENTE</span>
+          <span class="stat-val red" id="statPendiente">S/ 0</span>
+        </div>
       </div>
-      <button class="btn-reset" id="btnReset">↺ Reiniciar</button>
+      <button class="btn-nuevo" id="btnNuevo">+ NUEVO PRÉSTAMO</button>
     </div>
   </header>
 
+  <!-- FILTROS -->
+  <div class="filtros-bar">
+    <div class="filtros-inner">
+      <button class="filtro-btn active" data-filtro="todos">TODOS</button>
+      <button class="filtro-btn" data-filtro="activo">ACTIVOS</button>
+      <button class="filtro-btn" data-filtro="pagado">PAGADOS</button>
+      <input type="text" id="buscador" placeholder="🔍 Buscar por nombre..." />
+    </div>
+  </div>
+
+  <!-- MAIN -->
   <main>
-    <div class="groups-grid" id="groupsGrid"></div>
+    <div id="listaVacia" class="lista-vacia hidden">
+      <div class="vacio-icon">📋</div>
+      <p>No hay préstamos registrados aún.</p>
+      <p>Haz clic en <strong>+ NUEVO PRÉSTAMO</strong> para empezar.</p>
+    </div>
+    <div class="prestamos-grid" id="prestamosGrid"></div>
   </main>
 
   <footer>
-    <p>⚽ MundialStikers 2026 &nbsp;·&nbsp; Tu progreso se guarda automáticamente</p>
+    <p>PrestamoLey · Tus datos se sincronizan en la nube automáticamente</p>
   </footer>
 
-  <script src="app.js"></script>
+  <!-- FIREBASE -->
+  <script type="module" src="firebase.js"></script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>

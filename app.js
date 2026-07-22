@@ -1,354 +1,422 @@
 // =============================================
-//  MundialStikers 2026 – Dark Premium Edition
-//  Partículas + Stamp + Confeti + Celebración
+//  PrestamoLey – app.js
+//  Lógica principal con Firebase Firestore
 // =============================================
-
-const STORAGE_KEY = 'mundialStikers_2026';
-
-function flagUrl(code) {
-  if (code === 'gb-sct') return 'https://upload.wikimedia.org/wikipedia/commons/1/10/Flag_of_Scotland.svg';
-  if (code === 'gb-eng') return 'https://upload.wikimedia.org/wikipedia/en/b/be/Flag_of_England.svg';
-  return `https://flagcdn.com/w40/${code}.png`;
-}
-
-const GRUPOS = [
-  { letra:'A', equipos:[{nombre:'MÉXICO',code:'mx'},{nombre:'COREA DEL SUR',code:'kr'},{nombre:'SUDÁFRICA',code:'za'},{nombre:'REP. CHECA',code:'cz'}] },
-  { letra:'B', equipos:[{nombre:'CANADÁ',code:'ca'},{nombre:'SUIZA',code:'ch'},{nombre:'QATAR',code:'qa'},{nombre:'BOSNIA Y HERZ.',code:'ba'}] },
-  { letra:'C', equipos:[{nombre:'BRASIL',code:'br'},{nombre:'MARRUECOS',code:'ma'},{nombre:'ESCOCIA',code:'gb-sct'},{nombre:'HAITÍ',code:'ht'}] },
-  { letra:'D', equipos:[{nombre:'USA',code:'us'},{nombre:'AUSTRALIA',code:'au'},{nombre:'PARAGUAY',code:'py'},{nombre:'TURQUÍA',code:'tr'}] },
-  { letra:'E', equipos:[{nombre:'ALEMANIA',code:'de'},{nombre:'ECUADOR',code:'ec'},{nombre:'C. DE MARFIL',code:'ci'},{nombre:'CURAZAO',code:'cw'}] },
-  { letra:'F', equipos:[{nombre:'HOLANDA',code:'nl'},{nombre:'JAPÓN',code:'jp'},{nombre:'TÚNEZ',code:'tn'},{nombre:'SUECIA',code:'se'}] },
-  { letra:'G', equipos:[{nombre:'BÉLGICA',code:'be'},{nombre:'IRÁN',code:'ir'},{nombre:'EGIPTO',code:'eg'},{nombre:'NUEVA ZELANDA',code:'nz'}] },
-  { letra:'H', equipos:[{nombre:'ESPAÑA',code:'es'},{nombre:'URUGUAY',code:'uy'},{nombre:'ARABIA SAUDITA',code:'sa'},{nombre:'CABO VERDE',code:'cv'}] },
-  { letra:'I', equipos:[{nombre:'FRANCIA',code:'fr'},{nombre:'SENEGAL',code:'sn'},{nombre:'NORUEGA',code:'no'},{nombre:'IRAK',code:'iq'}] },
-  { letra:'J', equipos:[{nombre:'ARGENTINA',code:'ar'},{nombre:'AUSTRIA',code:'at'},{nombre:'ARGELIA',code:'dz'},{nombre:'JORDANIA',code:'jo'}] },
-  { letra:'K', equipos:[{nombre:'PORTUGAL',code:'pt'},{nombre:'COLOMBIA',code:'co'},{nombre:'UZBEKISTÁN',code:'uz'},{nombre:'RD CONGO',code:'cd'}] },
-  { letra:'L', equipos:[{nombre:'INGLATERRA',code:'gb-eng'},{nombre:'CROACIA',code:'hr'},{nombre:'PANAMÁ',code:'pa'},{nombre:'GHANA',code:'gh'}] },
-];
+import { db } from './firebase.js';
+import {
+  collection, addDoc, onSnapshot, doc,
+  updateDoc, deleteDoc, arrayUnion, arrayRemove,
+  serverTimestamp, query, orderBy
+} from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
 
 // =============================================
-//  PARTÍCULAS DE FONDO (pelotas flotantes)
+//  ESTADO GLOBAL
 // =============================================
-(function initParticles() {
-  const canvas = document.getElementById('particlesCanvas');
-  const ctx = canvas.getContext('2d');
-  let W, H, particles = [];
-
-  function resize() {
-    W = canvas.width  = window.innerWidth;
-    H = canvas.height = window.innerHeight;
-  }
-  resize();
-  window.addEventListener('resize', resize);
-
-  function createParticle() {
-    return {
-      x: Math.random() * W,
-      y: Math.random() * H + H,
-      r: 6 + Math.random() * 14,
-      vx: (Math.random() - 0.5) * 0.4,
-      vy: -(0.3 + Math.random() * 0.7),
-      rot: Math.random() * Math.PI * 2,
-      rotV: (Math.random() - 0.5) * 0.02,
-      alpha: 0.1 + Math.random() * 0.25,
-    };
-  }
-
-  for (let i = 0; i < 28; i++) {
-    const p = createParticle();
-    p.y = Math.random() * H; // distribuir inicialmente
-    particles.push(p);
-  }
-
-  function drawBall(ctx, x, y, r, rot, alpha) {
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.translate(x, y);
-    ctx.rotate(rot);
-
-    // base blanca
-    ctx.beginPath();
-    ctx.arc(0, 0, r, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(212,160,23,0.12)';
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(212,160,23,0.3)';
-    ctx.lineWidth = 0.8;
-    ctx.stroke();
-
-    // líneas de balón
-    ctx.strokeStyle = 'rgba(212,160,23,0.25)';
-    ctx.lineWidth = 0.6;
-    const lines = [
-      [[-r*0.3,-r*0.9],[r*0.3,-r*0.5],[r*0.6,r*0.2],[-r*0.3,r*0.7],[-r*0.6,r*0.1]],
-    ];
-    ctx.beginPath();
-    ctx.moveTo(-r*0.3,-r*0.9);
-    ctx.bezierCurveTo(r*0.5,-r*0.5,r*0.7,r*0.3,-r*0.3,r*0.7);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(r*0.3,-r*0.5);
-    ctx.bezierCurveTo(-r*0.3,-r*0.1,-r*0.6,r*0.4,-r*0.3,r*0.7);
-    ctx.stroke();
-
-    ctx.restore();
-  }
-
-  function loop() {
-    ctx.clearRect(0, 0, W, H);
-    particles.forEach((p, i) => {
-      p.x += p.vx;
-      p.y += p.vy;
-      p.rot += p.rotV;
-      if (p.y + p.r < 0) {
-        particles[i] = createParticle();
-      }
-      drawBall(ctx, p.x, p.y, p.r, p.rot, p.alpha);
-    });
-    requestAnimationFrame(loop);
-  }
-  loop();
-})();
+let prestamos = [];
+let filtroActual = 'todos';
+let prestamoSeleccionado = null;
 
 // =============================================
-//  CONFETI DE GRUPO (al completar un grupo)
+//  REFERENCIAS DOM
 // =============================================
-function lanzarConfettiGrupo(cardEl) {
-  const canvas = document.createElement('canvas');
-  canvas.className = 'group-confetti';
-  cardEl.appendChild(canvas);
+const grid            = document.getElementById('prestamosGrid');
+const listaVacia      = document.getElementById('listaVacia');
+const btnNuevo        = document.getElementById('btnNuevo');
+const modalPrestamo   = document.getElementById('modalPrestamo');
+const modalDetalle    = document.getElementById('modalDetalle');
+const modalPago       = document.getElementById('modalPago');
+const btnGuardar      = document.getElementById('btnGuardar');
+const btnGuardarPago  = document.getElementById('btnGuardarPago');
+const buscador        = document.getElementById('buscador');
+const resumenCuota    = document.getElementById('resumenCuota');
 
-  const rect = cardEl.getBoundingClientRect();
-  canvas.width  = cardEl.offsetWidth;
-  canvas.height = cardEl.offsetHeight;
+// Inputs préstamo
+const inputNombre  = document.getElementById('inputNombre');
+const inputMonto   = document.getElementById('inputMonto');
+const inputFecha   = document.getElementById('inputFecha');
+const inputInteres = document.getElementById('inputInteres');
+const inputCuotas  = document.getElementById('inputCuotas');
+const inputNotas   = document.getElementById('inputNotas');
 
-  const ctx = canvas.getContext('2d');
-  const pieces = Array.from({length: 40}, () => ({
-    x: Math.random() * canvas.width,
-    y: -10,
-    vx: (Math.random() - 0.5) * 3,
-    vy: 1.5 + Math.random() * 2.5,
-    color: ['#d4a017','#f5c842','#1abc9c','#e74c3c','#fff'][Math.floor(Math.random()*5)],
-    w: 4 + Math.random() * 6,
-    h: 6 + Math.random() * 8,
-    rot: Math.random() * Math.PI,
-    rotV: (Math.random()-0.5)*0.15,
-    alpha: 1,
-  }));
-
-  let frame = 0;
-  function draw() {
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    let alive = false;
-    pieces.forEach(p => {
-      if (p.y > canvas.height + 20) return;
-      alive = true;
-      p.x += p.vx;
-      p.y += p.vy;
-      p.rot += p.rotV;
-      p.alpha = Math.max(0, 1 - frame / 90);
-      ctx.save();
-      ctx.globalAlpha = p.alpha;
-      ctx.translate(p.x, p.y);
-      ctx.rotate(p.rot);
-      ctx.fillStyle = p.color;
-      ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
-      ctx.restore();
-    });
-    frame++;
-    if (frame < 100) requestAnimationFrame(draw);
-    else canvas.remove();
-  }
-  draw();
-}
+// Inputs pago
+const inputPagoMonto = document.getElementById('inputPagoMonto');
+const inputPagoFecha = document.getElementById('inputPagoFecha');
+const inputPagoNota  = document.getElementById('inputPagoNota');
 
 // =============================================
-//  CONFETI GLOBAL (celebración 48/48)
+//  FIRESTORE – ESCUCHAR CAMBIOS EN TIEMPO REAL
 // =============================================
-function lanzarConfettiGlobal() {
-  const canvas = document.getElementById('confettiCanvas');
-  canvas.width  = window.innerWidth;
-  canvas.height = window.innerHeight;
-  const ctx = canvas.getContext('2d');
+const q = query(collection(db, 'prestamos'), orderBy('creadoEn', 'desc'));
 
-  const pieces = Array.from({length: 180}, () => ({
-    x: Math.random() * canvas.width,
-    y: -20 - Math.random() * canvas.height * 0.5,
-    vx: (Math.random()-0.5)*5,
-    vy: 2 + Math.random()*4,
-    color: ['#d4a017','#f5c842','#1abc9c','#e74c3c','#fff','#3498db'][Math.floor(Math.random()*6)],
-    w: 6+Math.random()*10, h: 8+Math.random()*12,
-    rot: Math.random()*Math.PI, rotV: (Math.random()-0.5)*0.2,
-  }));
-
-  function draw() {
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    pieces.forEach(p => {
-      p.x += p.vx; p.y += p.vy; p.rot += p.rotV;
-      ctx.save();
-      ctx.translate(p.x, p.y);
-      ctx.rotate(p.rot);
-      ctx.fillStyle = p.color;
-      ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
-      ctx.restore();
-    });
-    if (pieces.some(p => p.y < canvas.height + 30)) requestAnimationFrame(draw);
-  }
-  draw();
-}
+onSnapshot(q, (snapshot) => {
+  prestamos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  renderPrestamos();
+  actualizarStats();
+});
 
 // =============================================
-//  EFECTO STAMP al tachar
+//  RENDER
 // =============================================
-function mostrarStamp(rowEl) {
-  const old = rowEl.querySelector('.stamp-overlay');
-  if (old) old.remove();
+function renderPrestamos() {
+  const busqueda = buscador.value.toLowerCase().trim();
 
-  const overlay = document.createElement('div');
-  overlay.className = 'stamp-overlay';
-  const txt = document.createElement('div');
-  txt.className = 'stamp-text';
-  txt.textContent = '✓ LISTO';
-  overlay.appendChild(txt);
-  rowEl.appendChild(overlay);
-
-  setTimeout(() => overlay.remove(), 550);
-}
-
-// =============================================
-//  ESTADO / LOCALSTORAGE
-// =============================================
-function cargarEstado() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
-  catch { return {}; }
-}
-function guardarEstado(e) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(e)); } catch {}
-}
-let estado = cargarEstado();
-
-// =============================================
-//  CONSTRUIR UI
-// =============================================
-function buildUI() {
-  const grid = document.getElementById('groupsGrid');
-  grid.innerHTML = '';
-
-  GRUPOS.forEach(grupo => {
-    const card = document.createElement('div');
-    card.className = 'group-card';
-    card.dataset.letra = grupo.letra;
-
-    const header = document.createElement('div');
-    header.className = 'group-header';
-    header.innerHTML = `
-      <span class="group-letter">${grupo.letra}</span>
-      <span class="group-title">GRUPO ${grupo.letra}</span>
-      <span class="group-done-badge">✓ COMPLETO</span>
-    `;
-
-    const list = document.createElement('div');
-    list.className = 'team-list';
-
-    grupo.equipos.forEach((equipo, idx) => {
-      const key = `${grupo.letra}-${idx}`;
-      const tachado = !!estado[key];
-
-      const row = document.createElement('div');
-      row.className = 'team-row' + (tachado ? ' tachado' : '');
-      row.dataset.key = key;
-      row.innerHTML = `
-        <img class="team-flag" src="${flagUrl(equipo.code)}" alt="${equipo.nombre}" loading="lazy" />
-        <span class="team-name">${equipo.nombre}</span>
-        <span class="team-check">${tachado ? '✓' : ''}</span>
-      `;
-      row.addEventListener('click', () => toggleTeam(key, row, grupo.letra, card));
-      list.appendChild(row);
-    });
-
-    card.appendChild(header);
-    card.appendChild(list);
-    grid.appendChild(card);
-    actualizarEstadoGrupo(grupo.letra, card, false);
+  const filtrados = prestamos.filter(p => {
+    const matchFiltro =
+      filtroActual === 'todos' ||
+      (filtroActual === 'activo' && p.estado === 'activo') ||
+      (filtroActual === 'pagado' && p.estado === 'pagado');
+    const matchBusqueda = p.nombre.toLowerCase().includes(busqueda);
+    return matchFiltro && matchBusqueda;
   });
 
-  actualizarProgreso();
-}
+  grid.innerHTML = '';
 
-// =============================================
-//  TOGGLE TACHADO
-// =============================================
-function toggleTeam(key, row, letra, card) {
-  const activo = row.classList.toggle('tachado');
-  const check = row.querySelector('.team-check');
-
-  if (activo) {
-    estado[key] = true;
-    check.textContent = '✓';
-    mostrarStamp(row);
-  } else {
-    delete estado[key];
-    check.textContent = '';
+  if (filtrados.length === 0) {
+    listaVacia.classList.remove('hidden');
+    return;
   }
+  listaVacia.classList.add('hidden');
 
-  guardarEstado(estado);
-  actualizarEstadoGrupo(letra, card, activo);
-  actualizarProgreso();
+  filtrados.forEach(p => {
+    const totalConInteres = p.monto * (1 + (p.interes || 0) / 100);
+    const pagado = (p.pagos || []).reduce((a, pg) => a + pg.monto, 0);
+    const pendiente = Math.max(0, totalConInteres - pagado);
+    const pct = Math.min(100, Math.round((pagado / totalConInteres) * 100));
+
+    const card = document.createElement('div');
+    card.className = `prestamo-card ${p.estado === 'pagado' ? 'pagado' : ''}`;
+    card.innerHTML = `
+      <div class="card-header">
+        <span class="card-nombre">${p.nombre}</span>
+        <span class="card-status ${p.estado}">${p.estado.toUpperCase()}</span>
+      </div>
+      <div class="card-body">
+        <div class="card-row">
+          <span class="card-label">MONTO TOTAL</span>
+          <span class="card-val monto-total">S/ ${totalConInteres.toFixed(2)}</span>
+        </div>
+        <div class="card-row">
+          <span class="card-label">COBRADO</span>
+          <span class="card-val cobrado">S/ ${pagado.toFixed(2)}</span>
+        </div>
+        <div class="card-row">
+          <span class="card-label">PENDIENTE</span>
+          <span class="card-val pendiente">S/ ${pendiente.toFixed(2)}</span>
+        </div>
+        ${p.cuotas > 1 ? `
+        <div class="card-row">
+          <span class="card-label">CUOTAS</span>
+          <span class="card-val">S/ ${(totalConInteres / p.cuotas).toFixed(2)} x ${p.cuotas}</span>
+        </div>` : ''}
+        <div class="progress-wrap">
+          <div class="progress-bg">
+            <div class="progress-fill" style="width:${pct}%"></div>
+          </div>
+          <div class="progress-pct">${pct}% cobrado</div>
+        </div>
+        <div class="card-row">
+          <span class="card-label">FECHA</span>
+          <span class="card-val" style="font-size:14px">${p.fecha || '—'}</span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <button class="btn-pago" data-id="${p.id}" ${p.estado === 'pagado' ? 'disabled' : ''}>+ PAGO</button>
+        <button class="btn-eliminar" data-id="${p.id}">🗑</button>
+      </div>
+    `;
+
+    // Click en card → detalle
+    card.addEventListener('click', (e) => {
+      if (e.target.classList.contains('btn-pago') || e.target.classList.contains('btn-eliminar')) return;
+      abrirDetalle(p);
+    });
+
+    // Botón pago
+    card.querySelector('.btn-pago')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      abrirModalPago(p);
+    });
+
+    // Botón eliminar
+    card.querySelector('.btn-eliminar')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (confirm(`¿Eliminar el préstamo de ${p.nombre}? Esta acción no se puede deshacer.`)) {
+        eliminarPrestamo(p.id);
+      }
+    });
+
+    grid.appendChild(card);
+  });
 }
 
-function actualizarEstadoGrupo(letra, card, accionFueTachar) {
-  if (!card) card = document.querySelector(`.group-card[data-letra="${letra}"]`);
-  if (!card) return;
-  const rows = card.querySelectorAll('.team-row');
-  const allDone = [...rows].every(r => r.classList.contains('tachado'));
-  const wasDone = card.classList.contains('all-done');
-
-  card.classList.toggle('all-done', allDone);
-
-  if (allDone && !wasDone && accionFueTachar) {
-    lanzarConfettiGrupo(card);
-  }
+// =============================================
+//  STATS HEADER
+// =============================================
+function actualizarStats() {
+  let totalPrestado = 0, totalCobrado = 0, totalPendiente = 0;
+  prestamos.forEach(p => {
+    const total = p.monto * (1 + (p.interes || 0) / 100);
+    const pagado = (p.pagos || []).reduce((a, pg) => a + pg.monto, 0);
+    totalPrestado += total;
+    totalCobrado  += pagado;
+    totalPendiente += Math.max(0, total - pagado);
+  });
+  document.getElementById('statPrestado').textContent  = `S/ ${totalPrestado.toFixed(2)}`;
+  document.getElementById('statCobrado').textContent   = `S/ ${totalCobrado.toFixed(2)}`;
+  document.getElementById('statPendiente').textContent = `S/ ${totalPendiente.toFixed(2)}`;
 }
 
 // =============================================
-//  PROGRESO
+//  MODAL NUEVO PRÉSTAMO
 // =============================================
-function actualizarProgreso() {
-  const total = GRUPOS.reduce((a, g) => a + g.equipos.length, 0);
-  const conseguidos = Object.keys(estado).length;
-  const pct = Math.round((conseguidos / total) * 100);
+btnNuevo.addEventListener('click', () => {
+  inputNombre.value  = '';
+  inputMonto.value   = '';
+  inputFecha.value   = new Date().toISOString().split('T')[0];
+  inputInteres.value = '';
+  inputCuotas.value  = '1';
+  inputNotas.value   = '';
+  resumenCuota.classList.remove('visible');
+  modalPrestamo.classList.remove('hidden');
+  setTimeout(() => inputNombre.focus(), 100);
+});
 
-  document.getElementById('progressBar').style.width = pct + '%';
-  document.getElementById('progressCount').textContent = `${conseguidos} / ${total}`;
+document.getElementById('btnCerrarModal').addEventListener('click', () => {
+  modalPrestamo.classList.add('hidden');
+});
+modalPrestamo.addEventListener('click', (e) => {
+  if (e.target === modalPrestamo) modalPrestamo.classList.add('hidden');
+});
 
-  const label = document.getElementById('progressLabel');
-  if (conseguidos === 0) label.textContent = 'Consigue todos los stickers';
-  else if (conseguidos === total) label.textContent = '¡Colección completa! 🏆';
-  else label.textContent = `${pct}% completado · ¡Sigue adelante!`;
+// Calcular resumen cuota en tiempo real
+[inputMonto, inputInteres, inputCuotas].forEach(el => {
+  el.addEventListener('input', calcularResumen);
+});
 
-  if (conseguidos === total) {
-    setTimeout(() => {
-      document.getElementById('celebracion').classList.remove('hidden');
-      lanzarConfettiGlobal();
-    }, 400);
-  }
+function calcularResumen() {
+  const monto   = parseFloat(inputMonto.value) || 0;
+  const interes = parseFloat(inputInteres.value) || 0;
+  const cuotas  = parseInt(inputCuotas.value) || 1;
+  if (monto <= 0) { resumenCuota.classList.remove('visible'); return; }
+  const total  = monto * (1 + interes / 100);
+  const cuota  = total / cuotas;
+  resumenCuota.innerHTML = `
+    Total a cobrar: S/ ${total.toFixed(2)} &nbsp;·&nbsp;
+    Cuota: S/ ${cuota.toFixed(2)} x ${cuotas}
+  `;
+  resumenCuota.classList.add('visible');
 }
 
-// =============================================
-//  BOTONES
-// =============================================
-document.getElementById('btnReset').addEventListener('click', () => {
-  if (confirm('¿Reiniciar todos los stickers? Se borrará tu progreso.')) {
-    estado = {};
-    guardarEstado(estado);
-    buildUI();
+// Guardar préstamo
+btnGuardar.addEventListener('click', async () => {
+  const nombre  = inputNombre.value.trim();
+  const monto   = parseFloat(inputMonto.value);
+  const fecha   = inputFecha.value;
+  const interes = parseFloat(inputInteres.value) || 0;
+  const cuotas  = parseInt(inputCuotas.value) || 1;
+  const notas   = inputNotas.value.trim();
+
+  if (!nombre) { mostrarToast('⚠ Ingresa el nombre del deudor'); return; }
+  if (!monto || monto <= 0) { mostrarToast('⚠ Ingresa un monto válido'); return; }
+
+  try {
+    await addDoc(collection(db, 'prestamos'), {
+      nombre, monto, fecha, interes, cuotas, notas,
+      estado: 'activo',
+      pagos: [],
+      creadoEn: serverTimestamp()
+    });
+    modalPrestamo.classList.add('hidden');
+    mostrarToast('✅ Préstamo guardado');
+  } catch (e) {
+    mostrarToast('❌ Error al guardar');
   }
 });
 
-document.getElementById('btnCerrarCeleb').addEventListener('click', () => {
-  document.getElementById('celebracion').classList.add('hidden');
+// =============================================
+//  MODAL DETALLE
+// =============================================
+function abrirDetalle(p) {
+  prestamoSeleccionado = p;
+  const totalConInteres = p.monto * (1 + (p.interes || 0) / 100);
+  const pagado    = (p.pagos || []).reduce((a, pg) => a + pg.monto, 0);
+  const pendiente = Math.max(0, totalConInteres - pagado);
+  const pct       = Math.min(100, Math.round((pagado / totalConInteres) * 100));
+
+  document.getElementById('detalleTitulo').textContent = p.nombre.toUpperCase();
+
+  const pagosHTML = (p.pagos || []).length === 0
+    ? `<div class="no-pagos">Aún no hay pagos registrados.</div>`
+    : [...(p.pagos || [])].reverse().map((pg, i) => `
+        <div class="pago-item">
+          <span class="pago-fecha">${pg.fecha || '—'}</span>
+          <span class="pago-nota">${pg.nota || 'Pago'}</span>
+          <span class="pago-monto">S/ ${pg.monto.toFixed(2)}</span>
+          <button class="pago-eliminar" data-idx="${(p.pagos.length - 1) - i}" title="Eliminar pago">✕</button>
+        </div>
+      `).join('');
+
+  document.getElementById('detalleBody').innerHTML = `
+    <div class="detalle-resumen">
+      <div class="detalle-stat">
+        <div class="ds-label">PRESTADO</div>
+        <div class="ds-val w">S/ ${p.monto.toFixed(2)}</div>
+      </div>
+      <div class="detalle-stat">
+        <div class="ds-label">INTERÉS</div>
+        <div class="ds-val w">${p.interes || 0}%</div>
+      </div>
+      <div class="detalle-stat">
+        <div class="ds-label">TOTAL</div>
+        <div class="ds-val w">S/ ${totalConInteres.toFixed(2)}</div>
+      </div>
+      <div class="detalle-stat">
+        <div class="ds-label">COBRADO</div>
+        <div class="ds-val g">S/ ${pagado.toFixed(2)}</div>
+      </div>
+      <div class="detalle-stat">
+        <div class="ds-label">PENDIENTE</div>
+        <div class="ds-val r">S/ ${pendiente.toFixed(2)}</div>
+      </div>
+      <div class="detalle-stat">
+        <div class="ds-label">AVANCE</div>
+        <div class="ds-val g">${pct}%</div>
+      </div>
+    </div>
+    ${p.notas ? `<div class="notas-box">📝 ${p.notas}</div>` : ''}
+    <div class="pagos-titulo">HISTORIAL DE PAGOS</div>
+    ${pagosHTML}
+    ${p.estado === 'activo' ? `
+    <button class="btn-guardar" id="btnDetalleMarcarPagado" style="margin-top:16px;background:#ffd600;color:#000">
+      ✅ MARCAR COMO TOTALMENTE PAGADO
+    </button>` : ''}
+  `;
+
+  // Eliminar pago individual
+  document.querySelectorAll('.pago-eliminar').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const idx = parseInt(btn.dataset.idx);
+      const pago = p.pagos[idx];
+      if (!pago) return;
+      if (!confirm('¿Eliminar este pago?')) return;
+      const nuevos = p.pagos.filter((_, i) => i !== idx);
+      const nuevoTotal = nuevos.reduce((a, pg) => a + pg.monto, 0);
+      const totalConInt = p.monto * (1 + (p.interes || 0) / 100);
+      const nuevoEstado = nuevoTotal >= totalConInt ? 'pagado' : 'activo';
+      await updateDoc(doc(db, 'prestamos', p.id), { pagos: nuevos, estado: nuevoEstado });
+      mostrarToast('Pago eliminado');
+      modalDetalle.classList.add('hidden');
+    });
+  });
+
+  // Marcar como pagado
+  document.getElementById('btnDetalleMarcarPagado')?.addEventListener('click', async () => {
+    if (!confirm(`¿Marcar el préstamo de ${p.nombre} como completamente pagado?`)) return;
+    await updateDoc(doc(db, 'prestamos', p.id), { estado: 'pagado' });
+    mostrarToast('✅ Préstamo marcado como pagado');
+    modalDetalle.classList.add('hidden');
+  });
+
+  modalDetalle.classList.remove('hidden');
+}
+
+document.getElementById('btnCerrarDetalle').addEventListener('click', () => {
+  modalDetalle.classList.add('hidden');
+});
+modalDetalle.addEventListener('click', (e) => {
+  if (e.target === modalDetalle) modalDetalle.classList.add('hidden');
 });
 
 // =============================================
-//  INICIO
+//  MODAL PAGO
 // =============================================
-buildUI();
+function abrirModalPago(p) {
+  prestamoSeleccionado = p;
+  const totalConInteres = p.monto * (1 + (p.interes || 0) / 100);
+  const pagado = (p.pagos || []).reduce((a, pg) => a + pg.monto, 0);
+  const pendiente = Math.max(0, totalConInteres - pagado);
+  inputPagoMonto.value = pendiente.toFixed(2);
+  inputPagoFecha.value = new Date().toISOString().split('T')[0];
+  inputPagoNota.value  = `Cuota ${(p.pagos || []).length + 1}`;
+  modalPago.classList.remove('hidden');
+  setTimeout(() => inputPagoMonto.focus(), 100);
+}
+
+document.getElementById('btnCerrarPago').addEventListener('click', () => {
+  modalPago.classList.add('hidden');
+});
+modalPago.addEventListener('click', (e) => {
+  if (e.target === modalPago) modalPago.classList.add('hidden');
+});
+
+btnGuardarPago.addEventListener('click', async () => {
+  if (!prestamoSeleccionado) return;
+  const monto = parseFloat(inputPagoMonto.value);
+  const fecha = inputPagoFecha.value;
+  const nota  = inputPagoNota.value.trim();
+
+  if (!monto || monto <= 0) { mostrarToast('⚠ Ingresa un monto válido'); return; }
+
+  const p = prestamoSeleccionado;
+  const nuevoPago = { monto, fecha, nota };
+  const nuevosPagos = [...(p.pagos || []), nuevoPago];
+  const totalPagado = nuevosPagos.reduce((a, pg) => a + pg.monto, 0);
+  const totalConInteres = p.monto * (1 + (p.interes || 0) / 100);
+  const nuevoEstado = totalPagado >= totalConInteres ? 'pagado' : 'activo';
+
+  try {
+    await updateDoc(doc(db, 'prestamos', p.id), {
+      pagos: nuevosPagos,
+      estado: nuevoEstado
+    });
+    modalPago.classList.add('hidden');
+    if (nuevoEstado === 'pagado') {
+      mostrarToast('🎉 ¡Préstamo completamente pagado!');
+    } else {
+      mostrarToast('✅ Pago registrado');
+    }
+  } catch (e) {
+    mostrarToast('❌ Error al registrar pago');
+  }
+});
+
+// =============================================
+//  ELIMINAR PRÉSTAMO
+// =============================================
+async function eliminarPrestamo(id) {
+  try {
+    await deleteDoc(doc(db, 'prestamos', id));
+    mostrarToast('🗑 Préstamo eliminado');
+  } catch (e) {
+    mostrarToast('❌ Error al eliminar');
+  }
+}
+
+// =============================================
+//  FILTROS Y BUSCADOR
+// =============================================
+document.querySelectorAll('.filtro-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    filtroActual = btn.dataset.filtro;
+    renderPrestamos();
+  });
+});
+
+buscador.addEventListener('input', renderPrestamos);
+
+// =============================================
+//  TOAST
+// =============================================
+function mostrarToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.opacity = '1';
+  t.style.transform = 'translateX(-50%) translateY(0)';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => {
+    t.style.opacity = '0';
+    t.style.transform = 'translateX(-50%) translateY(20px)';
+  }, 3000);
+}
