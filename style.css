@@ -575,3 +575,33 @@ footer {
   .detalle-resumen { grid-template-columns: 1fr 1fr; }
   #buscador { width: 100%; }
 }
+
+/* ---- RESPONSIVE MOBILE FIX ---- */
+@media (max-width: 640px) {
+  .header-inner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .logo-wrap { justify-content: center; }
+  .header-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    flex: unset;
+  }
+  .stat-pill {
+    padding: 6px 8px;
+    min-width: unset;
+  }
+  .stat-val { font-size: 16px; }
+  .stat-label { font-size: 9px; letter-spacing: 1px; }
+  .btn-nuevo {
+    width: 100%;
+    text-align: center;
+    margin-left: 0;
+  }
+  .field-row { grid-template-columns: 1fr; }
+  .detalle-resumen { grid-template-columns: 1fr 1fr; }
+  #buscador { width: 100%; }
+}
