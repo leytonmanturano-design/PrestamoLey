@@ -27,6 +27,7 @@
   --radius-sm:   8px;
   --shadow-green: 0 0 20px rgba(0,200,83,0.25);
   --shadow-gold:  0 0 20px rgba(255,214,0,0.25);
+  --app-height: 100vh;
 }
 
 html { scroll-behavior: smooth; }
@@ -467,6 +468,7 @@ main {
   align-items: center;
   justify-content: center;
   padding: 20px;
+  overflow-y: auto;
 }
 .modal.hidden { display: none; }
 
@@ -478,8 +480,9 @@ main {
   max-width: 500px;
   box-shadow: 0 16px 60px rgba(0,0,0,0.7), var(--shadow-green);
   animation: slideUp 0.3s cubic-bezier(0.175,0.885,0.32,1.275);
-  max-height: 90vh;
+  max-height: min(90vh, calc(var(--app-height) - 24px));
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 .modal-box-wide { max-width: 680px; }
 
@@ -797,7 +800,7 @@ footer {
   }
 
   .card-nombre {
-    font-size: 18px;
+    font-size: 24px;
   }
 
   .card-status {
@@ -820,11 +823,11 @@ footer {
   }
 
   .card-val {
-    font-size: 15px;
+    font-size: 16px;
   }
 
   .card-val.monto-total {
-    font-size: 20px;
+    font-size: 22px;
   }
 
   .card-footer {
@@ -834,14 +837,15 @@ footer {
 
   .btn-pago,
   .btn-eliminar {
-    font-size: 12px;
+    font-size: 16px;
     letter-spacing: 1.2px;
-    padding: 9px 10px;
+    padding: 10px 12px;
   }
 
   .modal-box {
     max-width: 92vw;
     border-radius: 18px;
+    max-height: calc(var(--app-height) - 16px);
   }
 
   .modal-header {
@@ -862,14 +866,14 @@ footer {
   }
 
   .field label {
-    font-size: 10px;
+    font-size: 11px;
     letter-spacing: 1.4px;
   }
 
   .field input,
   .field textarea {
-    padding: 10px 12px;
-    font-size: 15px;
+    padding: 12px 14px;
+    font-size: 18px;
   }
 
   .field-row {
@@ -886,6 +890,17 @@ footer {
   .detalle-resumen {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
+  }
+
+  .pago-item {
+    gap: 8px;
+    padding: 12px 10px;
+  }
+
+  .pago-fecha,
+  .pago-nota,
+  .pago-monto {
+    font-size: 15px;
   }
 
   .detalle-stat {

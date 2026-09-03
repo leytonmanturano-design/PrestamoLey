@@ -14,6 +14,16 @@ let prestamoSeleccionado = null;
 let capitalDisponible = 0;
 const CAPITAL_STORAGE_KEY = 'prestamoley.capital';
 
+function actualizarViewport() {
+  const vh = window.innerHeight * 0.01;
+  document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
+  document.documentElement.style.setProperty('--vh', `${vh}px`);
+}
+
+window.addEventListener('resize', actualizarViewport);
+window.addEventListener('orientationchange', actualizarViewport);
+actualizarViewport();
+
 await authReady;
 
 function leerCapitalLocal() {
