@@ -200,18 +200,23 @@ header {
   color: var(--gold);
 }
 #btnCerrarPanel {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border: 1px solid var(--card-border);
-  background: transparent;
-  color: var(--white-dim);
+  background: rgba(255,255,255,0.02);
+  color: var(--white);
   font-size: 18px;
-  border-radius: 10px;
+  border-radius: 12px;
   cursor: pointer;
+  transition: all 0.2s ease;
+  display: grid;
+  place-items: center;
 }
 #btnCerrarPanel:hover {
   color: var(--red);
   border-color: var(--red);
+  background: rgba(229, 57, 53, 0.08);
+  transform: scale(1.04);
 }
 
 .panel-body {
@@ -224,6 +229,15 @@ header {
   color: var(--white-dim);
   font-size: 14px;
   line-height: 1.5;
+}
+.field-helper {
+  margin: -2px 0 8px;
+  color: var(--green);
+  font-size: 11px;
+  line-height: 1.5;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  font-weight: 700;
 }
 .panel-divider {
   height: 1px;
@@ -892,10 +906,30 @@ footer {
     border-left: none;
   }
 
-  .panel-header,
+  .panel-header {
+    padding: 18px 16px 14px;
+  }
+
   .panel-body {
-    padding-left: 16px;
-    padding-right: 16px;
+    padding: 16px;
+    gap: 14px;
+  }
+
+  .panel-header h2 {
+    font-size: 22px;
+    letter-spacing: 2px;
+  }
+
+  #btnCerrarPanel {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    font-size: 20px;
+  }
+
+  .field-helper {
+    font-size: 10px;
+    letter-spacing: 0.6px;
   }
 
   footer {

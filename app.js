@@ -1,7 +1,7 @@
 // =============================================
 //  PrestamoLey – app.js
 // =============================================
-import { db } from './firebase.js';
+import { db, authReady } from './firebase.js';
 import {
   collection, addDoc, onSnapshot, doc,
   updateDoc, deleteDoc, serverTimestamp, query, orderBy,
@@ -12,6 +12,26 @@ let prestamos = [];
 let filtroActual = 'activo';
 let prestamoSeleccionado = null;
 let capitalDisponible = 0;
+const CAPITAL_STORAGE_KEY = 'prestamoley.capital';
+
+await authReady;
+
+function leerCapitalLocal() {
+  try {
+    const valor = Number(localStorage.getItem(CAPITAL_STORAGE_KEY));
+    return Number.isFinite(valor) ? valor : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function guardarCapitalLocal(valor) {
+  try {
+    localStorage.setItem(CAPITAL_STORAGE_KEY, String(valor));
+  } catch {
+    // Ignorar si el navegador no permite almacenamiento local.
+  }
+}
 
 const grid           = document.getElementById('prestamosGrid');
 const listaVacia     = document.getElementById('listaVacia');
@@ -42,21 +62,36 @@ const inputCapitalPanel = document.getElementById('inputCapitalPanel');
 const capitalRef = doc(db, 'config', 'capital');
 
 async function cargarCapital() {
+  capitalDisponible = leerCapitalLocal();
+
   try {
     const snap = await getDoc(capitalRef);
-    capitalDisponible = snap.exists() ? (snap.data().disponible ?? 0) : 0;
-    if (!snap.exists()) await setDoc(capitalRef, { disponible: 0 });
-  } catch(e) { capitalDisponible = 0; }
+    const valorRemoto = snap.exists() ? Number(snap.data().disponible ?? 0) : 0;
+    if (Number.isFinite(valorRemoto)) {
+      capitalDisponible = valorRemoto;
+      guardarCapitalLocal(capitalDisponible);
+    } else if (!snap.exists()) {
+      await setDoc(capitalRef, { disponible: capitalDisponible });
+    }
+  } catch (e) {
+    console.warn('No se pudo consultar Firestore, usando valor local:', e);
+  }
+
   actualizarStats();
 }
 
 async function guardarCapitalDB(valor, sumar = false) {
+  const nuevoValor = sumar ? capitalDisponible + valor : valor;
+  capitalDisponible = nuevoValor;
+  guardarCapitalLocal(capitalDisponible);
+  actualizarStats();
+
   try {
-    const nuevoValor = sumar ? capitalDisponible + valor : valor;
     await setDoc(capitalRef, { disponible: nuevoValor }, { merge: true });
-    capitalDisponible = nuevoValor;
-    actualizarStats();
-  } catch(e) { mostrarToast('❌ Error al guardar capital'); }
+  } catch (e) {
+    console.warn('Fallo en Firestore, se conserva el valor local:', e);
+    mostrarToast('⚠ Capital guardado localmente');
+  }
 }
 
 // =============================================
@@ -178,19 +213,25 @@ function cerrarPanel() {
   overlayConfig.classList.remove('visible');
 }
 
-document.getElementById('btnGuardarCapitalPanel').addEventListener('click', async () => {
+async function guardarCapitalDesdePanel() {
   const val = parseFloat(inputCapitalPanel.value);
   if (isNaN(val) || val < 0) { mostrarToast('⚠ Ingresa un monto válido'); return; }
-  await guardarCapitalDB(val, true);
-  mostrarToast('✅ Capital agregado');
-});
+
+  if (capitalDisponible !== val) {
+    const mensaje = `El capital actual es S/ ${capitalDisponible.toFixed(2)}.\n¿Deseas sobrescribirlo con S/ ${val.toFixed(2)}?`;
+    const confirmado = confirm(mensaje);
+    if (!confirmado) return;
+  }
+
+  await guardarCapitalDB(val);
+  mostrarToast('✅ Capital actualizado');
+}
+
+document.getElementById('btnGuardarCapitalPanel').addEventListener('click', guardarCapitalDesdePanel);
 
 inputCapitalPanel.addEventListener('keydown', async (e) => {
   if (e.key === 'Enter') {
-    const val = parseFloat(inputCapitalPanel.value);
-    if (isNaN(val) || val < 0) return;
-    await guardarCapitalDB(val, true);
-    mostrarToast('✅ Capital agregado');
+    await guardarCapitalDesdePanel();
   }
 });
 

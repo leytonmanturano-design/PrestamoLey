@@ -4,6 +4,7 @@
 // =============================================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBf_mo6sX4Zko4Xc0ZruSrSvNa0d8YqST0",
@@ -16,4 +17,15 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
+export const authReady = signInAnonymously(auth)
+  .then(() => {
+    console.log('Firebase auth anónima activada');
+    return true;
+  })
+  .catch((error) => {
+    console.error('Error al autenticar anónimamente:', error);
+    return false;
+  });
+
 export const db = getFirestore(app);
