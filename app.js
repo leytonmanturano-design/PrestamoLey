@@ -1,6 +1,5 @@
 // =============================================
 //  PrestamoLey – app.js
-//  Con capital, filtro por defecto ACTIVOS
 // =============================================
 import { db } from './firebase.js';
 import {
@@ -13,7 +12,7 @@ import {
 //  ESTADO GLOBAL
 // =============================================
 let prestamos = [];
-let filtroActual = 'activo'; // Por defecto ACTIVOS
+let filtroActual = 'activo';
 let prestamoSeleccionado = null;
 let capitalDisponible = 0;
 
@@ -45,7 +44,7 @@ const inputPagoNota  = document.getElementById('inputPagoNota');
 const inputCapital   = document.getElementById('inputCapital');
 
 // =============================================
-//  FIRESTORE – CAPITAL
+//  CAPITAL – FIRESTORE
 // =============================================
 const capitalRef = doc(db, 'config', 'capital');
 
@@ -53,22 +52,28 @@ async function cargarCapital() {
   try {
     const snap = await getDoc(capitalRef);
     if (snap.exists()) {
-      capitalDisponible = snap.data().disponible || 0;
+      capitalDisponible = snap.data().disponible ?? 0;
     } else {
-      // Primera vez: pedir capital inicial
-      capitalDisponible = 0;
+      // Crear el documento si no existe
       await setDoc(capitalRef, { disponible: 0 });
+      capitalDisponible = 0;
     }
-    actualizarStats();
   } catch(e) {
-    console.error('Error cargando capital', e);
+    console.error('Error cargando capital:', e);
+    capitalDisponible = 0;
   }
+  actualizarStats();
 }
 
 async function guardarCapitalDB(valor) {
-  await setDoc(capitalRef, { disponible: valor });
-  capitalDisponible = valor;
-  actualizarStats();
+  try {
+    await setDoc(capitalRef, { disponible: valor }, { merge: true });
+    capitalDisponible = valor;
+    actualizarStats();
+  } catch(e) {
+    console.error('Error guardando capital:', e);
+    mostrarToast('❌ Error al guardar capital');
+  }
 }
 
 // =============================================
@@ -165,7 +170,7 @@ function renderPrestamos() {
 
     card.querySelector('.btn-eliminar')?.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (confirm(`¿Eliminar el préstamo de ${p.nombre}? Esta acción no se puede deshacer.`)) {
+      if (confirm(`¿Eliminar el préstamo de ${p.nombre}?`)) {
         eliminarPrestamo(p.id, p);
       }
     });
@@ -175,10 +180,9 @@ function renderPrestamos() {
 }
 
 // =============================================
-//  STATS HEADER — Capital / En Calle / Total
+//  STATS
 // =============================================
 function actualizarStats() {
-  // En calle = suma de montos activos (con interés incluido, lo que se espera cobrar)
   let enCalle = 0;
   prestamos.forEach(p => {
     if (p.estado === 'activo') {
@@ -189,19 +193,18 @@ function actualizarStats() {
   });
 
   const capitalTotal = capitalDisponible + enCalle;
-
   document.getElementById('statCapital').textContent      = `S/ ${capitalDisponible.toFixed(2)}`;
   document.getElementById('statEnCalle').textContent      = `S/ ${enCalle.toFixed(2)}`;
   document.getElementById('statCapitalTotal').textContent = `S/ ${capitalTotal.toFixed(2)}`;
 }
 
 // =============================================
-//  MODAL CAPITAL
+//  MODAL CAPITAL — click en la pastilla
 // =============================================
 document.getElementById('statCapitalPill').addEventListener('click', () => {
-  inputCapital.value = capitalDisponible.toFixed(2);
+  inputCapital.value = capitalDisponible > 0 ? capitalDisponible.toFixed(2) : '';
   modalCapital.classList.remove('hidden');
-  setTimeout(() => inputCapital.focus(), 100);
+  setTimeout(() => inputCapital.focus(), 150);
 });
 
 document.getElementById('btnCerrarCapital').addEventListener('click', () => {
@@ -217,6 +220,17 @@ document.getElementById('btnGuardarCapital').addEventListener('click', async () 
   await guardarCapitalDB(val);
   modalCapital.classList.add('hidden');
   mostrarToast('✅ Capital actualizado');
+});
+
+// También guardar con Enter
+inputCapital.addEventListener('keydown', async (e) => {
+  if (e.key === 'Enter') {
+    const val = parseFloat(inputCapital.value);
+    if (isNaN(val) || val < 0) return;
+    await guardarCapitalDB(val);
+    modalCapital.classList.add('hidden');
+    mostrarToast('✅ Capital actualizado');
+  }
 });
 
 // =============================================
@@ -259,7 +273,6 @@ function calcularResumen() {
   resumenCuota.classList.add('visible');
 }
 
-// Guardar préstamo → descontar del capital
 btnGuardar.addEventListener('click', async () => {
   const nombre  = inputNombre.value.trim();
   const monto   = parseFloat(inputMonto.value);
@@ -282,15 +295,13 @@ btnGuardar.addEventListener('click', async () => {
       pagos: [],
       creadoEn: serverTimestamp()
     });
-
-    // Descontar del capital
     const nuevoCapital = capitalDisponible - monto;
     await guardarCapitalDB(nuevoCapital);
-
     modalPrestamo.classList.add('hidden');
     mostrarToast('✅ Préstamo guardado · Capital actualizado');
   } catch (e) {
     mostrarToast('❌ Error al guardar');
+    console.error(e);
   }
 });
 
@@ -313,36 +324,18 @@ function abrirDetalle(p) {
           <span class="pago-fecha">${pg.fecha || '—'}</span>
           <span class="pago-nota">${pg.nota || 'Pago'}</span>
           <span class="pago-monto">S/ ${pg.monto.toFixed(2)}</span>
-          <button class="pago-eliminar" data-idx="${(p.pagos.length - 1) - i}" title="Eliminar pago">✕</button>
+          <button class="pago-eliminar" data-idx="${(p.pagos.length - 1) - i}">✕</button>
         </div>
       `).join('');
 
   document.getElementById('detalleBody').innerHTML = `
     <div class="detalle-resumen">
-      <div class="detalle-stat">
-        <div class="ds-label">PRESTADO</div>
-        <div class="ds-val w">S/ ${p.monto.toFixed(2)}</div>
-      </div>
-      <div class="detalle-stat">
-        <div class="ds-label">INTERÉS</div>
-        <div class="ds-val w">${p.interes || 0}%</div>
-      </div>
-      <div class="detalle-stat">
-        <div class="ds-label">TOTAL</div>
-        <div class="ds-val w">S/ ${totalConInteres.toFixed(2)}</div>
-      </div>
-      <div class="detalle-stat">
-        <div class="ds-label">COBRADO</div>
-        <div class="ds-val g">S/ ${pagado.toFixed(2)}</div>
-      </div>
-      <div class="detalle-stat">
-        <div class="ds-label">PENDIENTE</div>
-        <div class="ds-val r">S/ ${pendiente.toFixed(2)}</div>
-      </div>
-      <div class="detalle-stat">
-        <div class="ds-label">AVANCE</div>
-        <div class="ds-val g">${pct}%</div>
-      </div>
+      <div class="detalle-stat"><div class="ds-label">PRESTADO</div><div class="ds-val w">S/ ${p.monto.toFixed(2)}</div></div>
+      <div class="detalle-stat"><div class="ds-label">INTERÉS</div><div class="ds-val w">${p.interes || 0}%</div></div>
+      <div class="detalle-stat"><div class="ds-label">TOTAL</div><div class="ds-val w">S/ ${totalConInteres.toFixed(2)}</div></div>
+      <div class="detalle-stat"><div class="ds-label">COBRADO</div><div class="ds-val g">S/ ${pagado.toFixed(2)}</div></div>
+      <div class="detalle-stat"><div class="ds-label">PENDIENTE</div><div class="ds-val r">S/ ${pendiente.toFixed(2)}</div></div>
+      <div class="detalle-stat"><div class="ds-label">AVANCE</div><div class="ds-val g">${pct}%</div></div>
     </div>
     ${p.notas ? `<div class="notas-box">📝 ${p.notas}</div>` : ''}
     <div class="pagos-titulo">HISTORIAL DE PAGOS</div>
@@ -356,8 +349,6 @@ function abrirDetalle(p) {
   document.querySelectorAll('.pago-eliminar').forEach(btn => {
     btn.addEventListener('click', async () => {
       const idx = parseInt(btn.dataset.idx);
-      const pago = p.pagos[idx];
-      if (!pago) return;
       if (!confirm('¿Eliminar este pago?')) return;
       const nuevos = p.pagos.filter((_, i) => i !== idx);
       const nuevoTotal = nuevos.reduce((a, pg) => a + pg.monto, 0);
@@ -369,12 +360,10 @@ function abrirDetalle(p) {
     });
   });
 
-  // Marcar como pagado → sumar al capital (monto + ganancia)
   document.getElementById('btnDetalleMarcarPagado')?.addEventListener('click', async () => {
     if (!confirm(`¿Marcar el préstamo de ${p.nombre} como completamente pagado?`)) return;
     const totalConInteres = p.monto * (1 + (p.interes || 0) / 100);
     await updateDoc(doc(db, 'prestamos', p.id), { estado: 'pagado' });
-    // Sumar al capital el total con ganancia
     const nuevoCapital = capitalDisponible + totalConInteres;
     await guardarCapitalDB(nuevoCapital);
     mostrarToast(`🎉 Pagado · +S/ ${totalConInteres.toFixed(2)} al capital`);
@@ -422,20 +411,16 @@ btnGuardarPago.addEventListener('click', async () => {
   if (!monto || monto <= 0) { mostrarToast('⚠ Ingresa un monto válido'); return; }
 
   const p = prestamoSeleccionado;
-  const nuevoPago    = { monto, fecha, nota };
-  const nuevosPagos  = [...(p.pagos || []), nuevoPago];
-  const totalPagado  = nuevosPagos.reduce((a, pg) => a + pg.monto, 0);
+  const nuevoPago       = { monto, fecha, nota };
+  const nuevosPagos     = [...(p.pagos || []), nuevoPago];
+  const totalPagado     = nuevosPagos.reduce((a, pg) => a + pg.monto, 0);
   const totalConInteres = p.monto * (1 + (p.interes || 0) / 100);
-  const prestamoPagado = totalPagado >= totalConInteres;
-  const nuevoEstado  = prestamoPagado ? 'pagado' : 'activo';
+  const prestamoPagado  = totalPagado >= totalConInteres;
+  const nuevoEstado     = prestamoPagado ? 'pagado' : 'activo';
 
   try {
-    await updateDoc(doc(db, 'prestamos', p.id), {
-      pagos: nuevosPagos,
-      estado: nuevoEstado
-    });
+    await updateDoc(doc(db, 'prestamos', p.id), { pagos: nuevosPagos, estado: nuevoEstado });
 
-    // Solo sumar al capital cuando el préstamo queda 100% pagado
     if (prestamoPagado) {
       const nuevoCapital = capitalDisponible + totalConInteres;
       await guardarCapitalDB(nuevoCapital);
@@ -443,10 +428,10 @@ btnGuardarPago.addEventListener('click', async () => {
     } else {
       mostrarToast('✅ Pago registrado');
     }
-
     modalPago.classList.add('hidden');
   } catch (e) {
     mostrarToast('❌ Error al registrar pago');
+    console.error(e);
   }
 });
 
@@ -455,7 +440,6 @@ btnGuardarPago.addEventListener('click', async () => {
 // =============================================
 async function eliminarPrestamo(id, p) {
   try {
-    // Si estaba activo, devolver el monto al capital
     if (p.estado === 'activo') {
       const nuevoCapital = capitalDisponible + p.monto;
       await guardarCapitalDB(nuevoCapital);
