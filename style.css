@@ -605,3 +605,24 @@ footer {
   .detalle-resumen { grid-template-columns: 1fr 1fr; }
   #buscador { width: 100%; }
 }
+
+/* ---- CAPITAL PILL EDITABLE ---- */
+#statCapitalPill {
+  cursor: pointer;
+  position: relative;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  border: 1px solid var(--green-dark);
+}
+#statCapitalPill:hover {
+  border-color: var(--green);
+  box-shadow: var(--shadow-green);
+}
+.stat-edit {
+  font-size: 11px;
+  color: var(--green-dark);
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  transition: color 0.2s;
+}
+#statCapitalPill:hover .stat-edit { color: var(--green); }

@@ -1,36 +1,37 @@
 // =============================================
 //  PrestamoLey – app.js
-//  Lógica principal con Firebase Firestore
+//  Con capital, filtro por defecto ACTIVOS
 // =============================================
 import { db } from './firebase.js';
 import {
   collection, addDoc, onSnapshot, doc,
-  updateDoc, deleteDoc, arrayUnion, arrayRemove,
-  serverTimestamp, query, orderBy
+  updateDoc, deleteDoc, serverTimestamp, query, orderBy,
+  setDoc, getDoc
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
 
 // =============================================
 //  ESTADO GLOBAL
 // =============================================
 let prestamos = [];
-let filtroActual = 'todos';
+let filtroActual = 'activo'; // Por defecto ACTIVOS
 let prestamoSeleccionado = null;
+let capitalDisponible = 0;
 
 // =============================================
 //  REFERENCIAS DOM
 // =============================================
-const grid            = document.getElementById('prestamosGrid');
-const listaVacia      = document.getElementById('listaVacia');
-const btnNuevo        = document.getElementById('btnNuevo');
-const modalPrestamo   = document.getElementById('modalPrestamo');
-const modalDetalle    = document.getElementById('modalDetalle');
-const modalPago       = document.getElementById('modalPago');
-const btnGuardar      = document.getElementById('btnGuardar');
-const btnGuardarPago  = document.getElementById('btnGuardarPago');
-const buscador        = document.getElementById('buscador');
-const resumenCuota    = document.getElementById('resumenCuota');
+const grid           = document.getElementById('prestamosGrid');
+const listaVacia     = document.getElementById('listaVacia');
+const btnNuevo       = document.getElementById('btnNuevo');
+const modalPrestamo  = document.getElementById('modalPrestamo');
+const modalDetalle   = document.getElementById('modalDetalle');
+const modalPago      = document.getElementById('modalPago');
+const modalCapital   = document.getElementById('modalCapital');
+const btnGuardar     = document.getElementById('btnGuardar');
+const btnGuardarPago = document.getElementById('btnGuardarPago');
+const buscador       = document.getElementById('buscador');
+const resumenCuota   = document.getElementById('resumenCuota');
 
-// Inputs préstamo
 const inputNombre  = document.getElementById('inputNombre');
 const inputMonto   = document.getElementById('inputMonto');
 const inputFecha   = document.getElementById('inputFecha');
@@ -38,18 +39,45 @@ const inputInteres = document.getElementById('inputInteres');
 const inputCuotas  = document.getElementById('inputCuotas');
 const inputNotas   = document.getElementById('inputNotas');
 
-// Inputs pago
 const inputPagoMonto = document.getElementById('inputPagoMonto');
 const inputPagoFecha = document.getElementById('inputPagoFecha');
 const inputPagoNota  = document.getElementById('inputPagoNota');
+const inputCapital   = document.getElementById('inputCapital');
 
 // =============================================
-//  FIRESTORE – ESCUCHAR CAMBIOS EN TIEMPO REAL
+//  FIRESTORE – CAPITAL
+// =============================================
+const capitalRef = doc(db, 'config', 'capital');
+
+async function cargarCapital() {
+  try {
+    const snap = await getDoc(capitalRef);
+    if (snap.exists()) {
+      capitalDisponible = snap.data().disponible || 0;
+    } else {
+      // Primera vez: pedir capital inicial
+      capitalDisponible = 0;
+      await setDoc(capitalRef, { disponible: 0 });
+    }
+    actualizarStats();
+  } catch(e) {
+    console.error('Error cargando capital', e);
+  }
+}
+
+async function guardarCapitalDB(valor) {
+  await setDoc(capitalRef, { disponible: valor });
+  capitalDisponible = valor;
+  actualizarStats();
+}
+
+// =============================================
+//  FIRESTORE – PRÉSTAMOS EN TIEMPO REAL
 // =============================================
 const q = query(collection(db, 'prestamos'), orderBy('creadoEn', 'desc'));
 
 onSnapshot(q, (snapshot) => {
-  prestamos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  prestamos = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
   renderPrestamos();
   actualizarStats();
 });
@@ -79,7 +107,7 @@ function renderPrestamos() {
 
   filtrados.forEach(p => {
     const totalConInteres = p.monto * (1 + (p.interes || 0) / 100);
-    const pagado = (p.pagos || []).reduce((a, pg) => a + pg.monto, 0);
+    const pagado   = (p.pagos || []).reduce((a, pg) => a + pg.monto, 0);
     const pendiente = Math.max(0, totalConInteres - pagado);
     const pct = Math.min(100, Math.round((pagado / totalConInteres) * 100));
 
@@ -125,23 +153,20 @@ function renderPrestamos() {
       </div>
     `;
 
-    // Click en card → detalle
     card.addEventListener('click', (e) => {
       if (e.target.classList.contains('btn-pago') || e.target.classList.contains('btn-eliminar')) return;
       abrirDetalle(p);
     });
 
-    // Botón pago
     card.querySelector('.btn-pago')?.addEventListener('click', (e) => {
       e.stopPropagation();
       abrirModalPago(p);
     });
 
-    // Botón eliminar
     card.querySelector('.btn-eliminar')?.addEventListener('click', (e) => {
       e.stopPropagation();
       if (confirm(`¿Eliminar el préstamo de ${p.nombre}? Esta acción no se puede deshacer.`)) {
-        eliminarPrestamo(p.id);
+        eliminarPrestamo(p.id, p);
       }
     });
 
@@ -150,21 +175,49 @@ function renderPrestamos() {
 }
 
 // =============================================
-//  STATS HEADER
+//  STATS HEADER — Capital / En Calle / Total
 // =============================================
 function actualizarStats() {
-  let totalPrestado = 0, totalCobrado = 0, totalPendiente = 0;
+  // En calle = suma de montos activos (con interés incluido, lo que se espera cobrar)
+  let enCalle = 0;
   prestamos.forEach(p => {
-    const total = p.monto * (1 + (p.interes || 0) / 100);
-    const pagado = (p.pagos || []).reduce((a, pg) => a + pg.monto, 0);
-    totalPrestado += total;
-    totalCobrado  += pagado;
-    totalPendiente += Math.max(0, total - pagado);
+    if (p.estado === 'activo') {
+      const total  = p.monto * (1 + (p.interes || 0) / 100);
+      const pagado = (p.pagos || []).reduce((a, pg) => a + pg.monto, 0);
+      enCalle += Math.max(0, total - pagado);
+    }
   });
-  document.getElementById('statPrestado').textContent  = `S/ ${totalPrestado.toFixed(2)}`;
-  document.getElementById('statCobrado').textContent   = `S/ ${totalCobrado.toFixed(2)}`;
-  document.getElementById('statPendiente').textContent = `S/ ${totalPendiente.toFixed(2)}`;
+
+  const capitalTotal = capitalDisponible + enCalle;
+
+  document.getElementById('statCapital').textContent      = `S/ ${capitalDisponible.toFixed(2)}`;
+  document.getElementById('statEnCalle').textContent      = `S/ ${enCalle.toFixed(2)}`;
+  document.getElementById('statCapitalTotal').textContent = `S/ ${capitalTotal.toFixed(2)}`;
 }
+
+// =============================================
+//  MODAL CAPITAL
+// =============================================
+document.getElementById('statCapitalPill').addEventListener('click', () => {
+  inputCapital.value = capitalDisponible.toFixed(2);
+  modalCapital.classList.remove('hidden');
+  setTimeout(() => inputCapital.focus(), 100);
+});
+
+document.getElementById('btnCerrarCapital').addEventListener('click', () => {
+  modalCapital.classList.add('hidden');
+});
+modalCapital.addEventListener('click', (e) => {
+  if (e.target === modalCapital) modalCapital.classList.add('hidden');
+});
+
+document.getElementById('btnGuardarCapital').addEventListener('click', async () => {
+  const val = parseFloat(inputCapital.value);
+  if (isNaN(val) || val < 0) { mostrarToast('⚠ Ingresa un monto válido'); return; }
+  await guardarCapitalDB(val);
+  modalCapital.classList.add('hidden');
+  mostrarToast('✅ Capital actualizado');
+});
 
 // =============================================
 //  MODAL NUEVO PRÉSTAMO
@@ -188,7 +241,6 @@ modalPrestamo.addEventListener('click', (e) => {
   if (e.target === modalPrestamo) modalPrestamo.classList.add('hidden');
 });
 
-// Calcular resumen cuota en tiempo real
 [inputMonto, inputInteres, inputCuotas].forEach(el => {
   el.addEventListener('input', calcularResumen);
 });
@@ -198,8 +250,8 @@ function calcularResumen() {
   const interes = parseFloat(inputInteres.value) || 0;
   const cuotas  = parseInt(inputCuotas.value) || 1;
   if (monto <= 0) { resumenCuota.classList.remove('visible'); return; }
-  const total  = monto * (1 + interes / 100);
-  const cuota  = total / cuotas;
+  const total = monto * (1 + interes / 100);
+  const cuota = total / cuotas;
   resumenCuota.innerHTML = `
     Total a cobrar: S/ ${total.toFixed(2)} &nbsp;·&nbsp;
     Cuota: S/ ${cuota.toFixed(2)} x ${cuotas}
@@ -207,7 +259,7 @@ function calcularResumen() {
   resumenCuota.classList.add('visible');
 }
 
-// Guardar préstamo
+// Guardar préstamo → descontar del capital
 btnGuardar.addEventListener('click', async () => {
   const nombre  = inputNombre.value.trim();
   const monto   = parseFloat(inputMonto.value);
@@ -218,6 +270,10 @@ btnGuardar.addEventListener('click', async () => {
 
   if (!nombre) { mostrarToast('⚠ Ingresa el nombre del deudor'); return; }
   if (!monto || monto <= 0) { mostrarToast('⚠ Ingresa un monto válido'); return; }
+  if (monto > capitalDisponible) {
+    mostrarToast('⚠ No tienes suficiente capital disponible');
+    return;
+  }
 
   try {
     await addDoc(collection(db, 'prestamos'), {
@@ -226,8 +282,13 @@ btnGuardar.addEventListener('click', async () => {
       pagos: [],
       creadoEn: serverTimestamp()
     });
+
+    // Descontar del capital
+    const nuevoCapital = capitalDisponible - monto;
+    await guardarCapitalDB(nuevoCapital);
+
     modalPrestamo.classList.add('hidden');
-    mostrarToast('✅ Préstamo guardado');
+    mostrarToast('✅ Préstamo guardado · Capital actualizado');
   } catch (e) {
     mostrarToast('❌ Error al guardar');
   }
@@ -292,7 +353,6 @@ function abrirDetalle(p) {
     </button>` : ''}
   `;
 
-  // Eliminar pago individual
   document.querySelectorAll('.pago-eliminar').forEach(btn => {
     btn.addEventListener('click', async () => {
       const idx = parseInt(btn.dataset.idx);
@@ -309,11 +369,15 @@ function abrirDetalle(p) {
     });
   });
 
-  // Marcar como pagado
+  // Marcar como pagado → sumar al capital (monto + ganancia)
   document.getElementById('btnDetalleMarcarPagado')?.addEventListener('click', async () => {
     if (!confirm(`¿Marcar el préstamo de ${p.nombre} como completamente pagado?`)) return;
+    const totalConInteres = p.monto * (1 + (p.interes || 0) / 100);
     await updateDoc(doc(db, 'prestamos', p.id), { estado: 'pagado' });
-    mostrarToast('✅ Préstamo marcado como pagado');
+    // Sumar al capital el total con ganancia
+    const nuevoCapital = capitalDisponible + totalConInteres;
+    await guardarCapitalDB(nuevoCapital);
+    mostrarToast(`🎉 Pagado · +S/ ${totalConInteres.toFixed(2)} al capital`);
     modalDetalle.classList.add('hidden');
   });
 
@@ -358,23 +422,29 @@ btnGuardarPago.addEventListener('click', async () => {
   if (!monto || monto <= 0) { mostrarToast('⚠ Ingresa un monto válido'); return; }
 
   const p = prestamoSeleccionado;
-  const nuevoPago = { monto, fecha, nota };
-  const nuevosPagos = [...(p.pagos || []), nuevoPago];
-  const totalPagado = nuevosPagos.reduce((a, pg) => a + pg.monto, 0);
+  const nuevoPago    = { monto, fecha, nota };
+  const nuevosPagos  = [...(p.pagos || []), nuevoPago];
+  const totalPagado  = nuevosPagos.reduce((a, pg) => a + pg.monto, 0);
   const totalConInteres = p.monto * (1 + (p.interes || 0) / 100);
-  const nuevoEstado = totalPagado >= totalConInteres ? 'pagado' : 'activo';
+  const prestamoPagado = totalPagado >= totalConInteres;
+  const nuevoEstado  = prestamoPagado ? 'pagado' : 'activo';
 
   try {
     await updateDoc(doc(db, 'prestamos', p.id), {
       pagos: nuevosPagos,
       estado: nuevoEstado
     });
-    modalPago.classList.add('hidden');
-    if (nuevoEstado === 'pagado') {
-      mostrarToast('🎉 ¡Préstamo completamente pagado!');
+
+    // Solo sumar al capital cuando el préstamo queda 100% pagado
+    if (prestamoPagado) {
+      const nuevoCapital = capitalDisponible + totalConInteres;
+      await guardarCapitalDB(nuevoCapital);
+      mostrarToast(`🎉 ¡Préstamo pagado! +S/ ${totalConInteres.toFixed(2)} al capital`);
     } else {
       mostrarToast('✅ Pago registrado');
     }
+
+    modalPago.classList.add('hidden');
   } catch (e) {
     mostrarToast('❌ Error al registrar pago');
   }
@@ -383,10 +453,15 @@ btnGuardarPago.addEventListener('click', async () => {
 // =============================================
 //  ELIMINAR PRÉSTAMO
 // =============================================
-async function eliminarPrestamo(id) {
+async function eliminarPrestamo(id, p) {
   try {
+    // Si estaba activo, devolver el monto al capital
+    if (p.estado === 'activo') {
+      const nuevoCapital = capitalDisponible + p.monto;
+      await guardarCapitalDB(nuevoCapital);
+    }
     await deleteDoc(doc(db, 'prestamos', id));
-    mostrarToast('🗑 Préstamo eliminado');
+    mostrarToast('🗑 Préstamo eliminado · Capital restaurado');
   } catch (e) {
     mostrarToast('❌ Error al eliminar');
   }
@@ -418,5 +493,10 @@ function mostrarToast(msg) {
   t._timer = setTimeout(() => {
     t.style.opacity = '0';
     t.style.transform = 'translateX(-50%) translateY(20px)';
-  }, 3000);
+  }, 3500);
 }
+
+// =============================================
+//  INICIO
+// =============================================
+cargarCapital();
