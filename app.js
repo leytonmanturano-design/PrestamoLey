@@ -50,10 +50,11 @@ async function cargarCapital() {
   actualizarStats();
 }
 
-async function guardarCapitalDB(valor) {
+async function guardarCapitalDB(valor, sumar = false) {
   try {
-    await setDoc(capitalRef, { disponible: valor }, { merge: true });
-    capitalDisponible = valor;
+    const nuevoValor = sumar ? capitalDisponible + valor : valor;
+    await setDoc(capitalRef, { disponible: nuevoValor }, { merge: true });
+    capitalDisponible = nuevoValor;
     actualizarStats();
   } catch(e) { mostrarToast('❌ Error al guardar capital'); }
 }
@@ -180,16 +181,16 @@ function cerrarPanel() {
 document.getElementById('btnGuardarCapitalPanel').addEventListener('click', async () => {
   const val = parseFloat(inputCapitalPanel.value);
   if (isNaN(val) || val < 0) { mostrarToast('⚠ Ingresa un monto válido'); return; }
-  await guardarCapitalDB(val);
-  mostrarToast('✅ Capital actualizado');
+  await guardarCapitalDB(val, true);
+  mostrarToast('✅ Capital agregado');
 });
 
 inputCapitalPanel.addEventListener('keydown', async (e) => {
   if (e.key === 'Enter') {
     const val = parseFloat(inputCapitalPanel.value);
     if (isNaN(val) || val < 0) return;
-    await guardarCapitalDB(val);
-    mostrarToast('✅ Capital actualizado');
+    await guardarCapitalDB(val, true);
+    mostrarToast('✅ Capital agregado');
   }
 });
 

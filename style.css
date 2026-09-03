@@ -126,6 +126,119 @@ header {
 }
 .btn-nuevo:hover { background: #00e676; transform: scale(1.04); }
 
+/* ---- HEADER ACTIONS ---- */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.btn-hamburguesa {
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--card-border);
+  background: var(--bg3);
+  color: var(--white);
+  border-radius: 10px;
+  font-size: 22px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-hamburguesa:hover {
+  border-color: var(--green);
+  color: var(--green);
+  box-shadow: var(--shadow-green);
+}
+
+/* ---- PANEL CONFIG ---- */
+#overlayConfig {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(3px);
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.25s ease;
+  z-index: 1100;
+}
+#overlayConfig.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+#panelConfig {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: min(420px, 92vw);
+  height: 100vh;
+  background: linear-gradient(180deg, var(--bg2), var(--bg3));
+  border-left: 1px solid var(--green-dark);
+  box-shadow: -18px 0 34px rgba(0, 0, 0, 0.45);
+  transform: translateX(105%);
+  transition: transform 0.28s ease;
+  z-index: 1200;
+  display: flex;
+  flex-direction: column;
+}
+#panelConfig.abierto {
+  transform: translateX(0);
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 22px 18px;
+  border-bottom: 1px solid var(--card-border);
+}
+.panel-header h2 {
+  font-family: var(--font-display);
+  font-size: 24px;
+  letter-spacing: 3px;
+  color: var(--gold);
+}
+#btnCerrarPanel {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--card-border);
+  background: transparent;
+  color: var(--white-dim);
+  font-size: 18px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+#btnCerrarPanel:hover {
+  color: var(--red);
+  border-color: var(--red);
+}
+
+.panel-body {
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.panel-desc {
+  color: var(--white-dim);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.panel-divider {
+  height: 1px;
+  background: var(--card-border);
+  margin: 4px 0;
+}
+.panel-info {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: var(--white-dim);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
 /* ---- FILTROS ---- */
 .filtros-bar {
   background: var(--bg2);
@@ -569,41 +682,227 @@ footer {
 
 /* ---- RESPONSIVE ---- */
 @media (max-width: 640px) {
-  .header-stats { flex: 100%; order: 3; justify-content: space-between; }
-  .btn-nuevo { margin-left: auto; }
-  .field-row { grid-template-columns: 1fr; }
-  .detalle-resumen { grid-template-columns: 1fr 1fr; }
-  #buscador { width: 100%; }
-}
+  body {
+    font-size: 15px;
+  }
 
-/* ---- RESPONSIVE MOBILE FIX ---- */
-@media (max-width: 640px) {
+  header {
+    padding: 12px 14px;
+  }
+
   .header-inner {
     flex-direction: column;
     align-items: stretch;
     gap: 12px;
   }
-  .logo-wrap { justify-content: center; }
-  .header-stats {
+
+  .logo-wrap {
+    justify-content: center;
+  }
+
+  .header-actions {
+    margin-left: 0;
+    width: 100%;
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    flex: unset;
+    grid-template-columns: 1fr 42px;
+    gap: 10px;
   }
-  .stat-pill {
-    padding: 6px 8px;
-    min-width: unset;
-  }
-  .stat-val { font-size: 16px; }
-  .stat-label { font-size: 9px; letter-spacing: 1px; }
+
   .btn-nuevo {
     width: 100%;
+    font-size: 15px;
+    letter-spacing: 1.5px;
+    padding: 11px 14px;
     text-align: center;
+  }
+
+  .header-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    width: 100%;
+    flex: unset;
+  }
+
+  .stat-pill {
+    padding: 8px 6px;
+    min-width: unset;
+    border-radius: 10px;
+  }
+
+  .stat-label {
+    font-size: 8px;
+    letter-spacing: 1px;
+    text-align: center;
+  }
+
+  .stat-val {
+    font-size: 15px;
+    line-height: 1.2;
+  }
+
+  .filtros-bar {
+    padding: 10px 14px;
+    top: 110px;
+  }
+
+  .filtros-inner {
+    gap: 8px;
+  }
+
+  .filtro-btn {
+    flex: 1 1 30%;
+    min-width: 0;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    padding: 7px 10px;
+  }
+
+  #buscador {
+    width: 100%;
+    min-width: 0;
     margin-left: 0;
   }
-  .field-row { grid-template-columns: 1fr; }
-  .detalle-resumen { grid-template-columns: 1fr 1fr; }
-  #buscador { width: 100%; }
+
+  main {
+    padding: 18px 14px 42px;
+  }
+
+  .prestamos-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .prestamo-card {
+    border-radius: 16px;
+  }
+
+  .card-header {
+    padding: 12px 14px 10px;
+    align-items: flex-start;
+  }
+
+  .card-nombre {
+    font-size: 18px;
+  }
+
+  .card-status {
+    font-size: 10px;
+    letter-spacing: 1px;
+    padding: 4px 8px;
+  }
+
+  .card-body {
+    padding: 12px 14px;
+  }
+
+  .card-row {
+    margin-bottom: 7px;
+  }
+
+  .card-label {
+    font-size: 10px;
+    letter-spacing: 1px;
+  }
+
+  .card-val {
+    font-size: 15px;
+  }
+
+  .card-val.monto-total {
+    font-size: 20px;
+  }
+
+  .card-footer {
+    padding: 10px 14px 12px;
+    gap: 8px;
+  }
+
+  .btn-pago,
+  .btn-eliminar {
+    font-size: 12px;
+    letter-spacing: 1.2px;
+    padding: 9px 10px;
+  }
+
+  .modal-box {
+    max-width: 92vw;
+    border-radius: 18px;
+  }
+
+  .modal-header {
+    padding: 16px 18px 12px;
+  }
+
+  .modal-header h2 {
+    font-size: 20px;
+    letter-spacing: 2px;
+  }
+
+  .modal-body {
+    padding: 16px 18px 20px;
+  }
+
+  .field {
+    margin-bottom: 14px;
+  }
+
+  .field label {
+    font-size: 10px;
+    letter-spacing: 1.4px;
+  }
+
+  .field input,
+  .field textarea {
+    padding: 10px 12px;
+    font-size: 15px;
+  }
+
+  .field-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .btn-guardar {
+    font-size: 16px;
+    letter-spacing: 2px;
+    padding: 12px 14px;
+  }
+
+  .detalle-resumen {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .detalle-stat {
+    padding: 10px 8px;
+  }
+
+  .detalle-stat .ds-label {
+    font-size: 9px;
+    letter-spacing: 1px;
+  }
+
+  .detalle-stat .ds-val {
+    font-size: 18px;
+  }
+
+  #panelConfig {
+    width: 100vw;
+    border-left: none;
+  }
+
+  .panel-header,
+  .panel-body {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  footer {
+    padding: 14px 12px;
+    font-size: 10px;
+    letter-spacing: 1px;
+  }
 }
 
 /* ---- CAPITAL PILL EDITABLE ---- */
