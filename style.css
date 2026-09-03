@@ -45,35 +45,35 @@ header {
   z-index: 100;
   background: rgba(8,15,8,0.96);
   backdrop-filter: blur(12px);
-  border-bottom: 2px solid var(--green-dark);
-  box-shadow: 0 2px 24px rgba(0,200,83,0.15);
-  padding: 14px 24px;
+  border-bottom: 1px solid var(--green-dark);
+  box-shadow: 0 2px 16px rgba(0,200,83,0.12);
+  padding: 8px 16px;
 }
 .header-inner {
   max-width: 1300px;
   margin: 0 auto;
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
 /* Logo */
 .logo-wrap { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-.logo-icon { font-size: 36px; }
+.logo-icon { font-size: 28px; }
 .logo-text { display: flex; flex-direction: column; line-height: 1; }
 .logo-prestamo {
   font-family: var(--font-display);
-  font-size: 13px;
-  letter-spacing: 6px;
+  font-size: 11px;
+  letter-spacing: 4px;
   color: var(--white-dim);
 }
 .logo-ley {
   font-family: var(--font-display);
-  font-size: 32px;
-  letter-spacing: 5px;
+  font-size: 26px;
+  letter-spacing: 4px;
   color: var(--green);
-  text-shadow: 0 0 20px rgba(0,200,83,0.5);
+  text-shadow: 0 0 16px rgba(0,200,83,0.4);
   line-height: 1;
 }
 
@@ -88,21 +88,21 @@ header {
   background: var(--bg3);
   border: 1px solid var(--card-border);
   border-radius: var(--radius-sm);
-  padding: 6px 16px;
+  padding: 5px 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-width: 90px;
+  min-width: 88px;
 }
 .stat-label {
   font-family: var(--font-display);
-  font-size: 10px;
-  letter-spacing: 2px;
+  font-size: 9px;
+  letter-spacing: 1.5px;
   color: var(--white-dim);
 }
 .stat-val {
   font-family: var(--font-display);
-  font-size: 20px;
+  font-size: 18px;
   letter-spacing: 1px;
   color: var(--white);
 }
@@ -112,12 +112,12 @@ header {
 /* Botón nuevo */
 .btn-nuevo {
   font-family: var(--font-display);
-  font-size: 16px;
+  font-size: 17px;
   letter-spacing: 2px;
   background: var(--green);
   color: var(--bg);
   border: none;
-  padding: 10px 22px;
+  padding: 12px 24px;
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all 0.2s;
@@ -136,13 +136,13 @@ header {
 }
 
 .btn-hamburguesa {
-  width: 42px;
-  height: 42px;
+  width: 46px;
+  height: 46px;
   border: 1px solid var(--card-border);
   background: var(--bg3);
   color: var(--white);
   border-radius: 10px;
-  font-size: 22px;
+  font-size: 24px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -357,11 +357,12 @@ main {
 }
 .card-nombre {
   font-family: var(--font-display);
-  font-size: 20px;
-  letter-spacing: 1.5px;
+  font-size: 24px;
+  letter-spacing: 1.8px;
   color: var(--white);
   flex: 1;
-  text-shadow: 1px 1px 0 #000;
+  text-shadow: 1px 1px 0 #000, 0 0 18px rgba(0,200,83,0.2);
+  font-weight: 600;
 }
 .card-status {
   font-family: var(--font-display);
@@ -430,12 +431,12 @@ main {
 .btn-pago {
   flex: 1;
   font-family: var(--font-display);
-  font-size: 14px;
+  font-size: 16px;
   letter-spacing: 2px;
   background: var(--green);
   color: var(--bg);
   border: none;
-  padding: 8px;
+  padding: 10px 12px;
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all 0.2s;
@@ -445,12 +446,12 @@ main {
 
 .btn-eliminar {
   font-family: var(--font-display);
-  font-size: 14px;
+  font-size: 16px;
   letter-spacing: 1px;
   background: transparent;
   color: var(--red);
   border: 1.5px solid var(--red-dim);
-  padding: 8px 14px;
+  padding: 10px 16px;
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all 0.2s;
@@ -704,13 +705,13 @@ footer {
   }
 
   header {
-    padding: 12px 14px;
+    padding: 10px 12px;
   }
 
   .header-inner {
     flex-direction: column;
     align-items: stretch;
-    gap: 12px;
+    gap: 10px;
   }
 
   .logo-wrap {
@@ -727,9 +728,9 @@ footer {
 
   .btn-nuevo {
     width: 100%;
-    font-size: 15px;
+    font-size: 17px;
     letter-spacing: 1.5px;
-    padding: 11px 14px;
+    padding: 12px 16px;
     text-align: center;
   }
 
@@ -837,9 +838,9 @@ footer {
 
   .btn-pago,
   .btn-eliminar {
-    font-size: 16px;
+    font-size: 17px;
     letter-spacing: 1.2px;
-    padding: 10px 12px;
+    padding: 11px 12px;
   }
 
   .modal-box {
