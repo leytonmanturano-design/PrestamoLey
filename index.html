@@ -1,74 +1,178 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gestión de Préstamos</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PrestamoLey</title>
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-  <!-- Cabecera con botón de menú -->
-  <header class="header">
-    <button id="btn-menu" class="btn-icon" aria-label="Abrir menú">☰</button>
-    <h1>Gestión de Préstamos</h1>
-  </header>
+  <!-- OVERLAY panel -->
+  <div id="overlayConfig"></div>
 
-  <!-- Menú Lateral (Drawer / Tres rayitas) -->
-  <aside id="sidebar" class="sidebar">
-    <div class="sidebar-header">
-      <h2>Configuración</h2>
-      <button id="btn-close-sidebar" class="btn-close">&times;</button>
+  <!-- PANEL LATERAL CONFIG -->
+  <div id="panelConfig">
+    <div class="panel-header">
+      <h2>CONFIGURACIÓN</h2>
+      <button id="btnCerrarPanel">✕</button>
     </div>
-    <div class="sidebar-content">
-      <div class="form-group">
-        <label for="input-capital-sidebar">Capital Total:</label>
-        <input type="number" id="input-capital-sidebar" step="0.01" placeholder="Ej. 10000">
-        <button id="btn-save-capital" class="btn-primary">Guardar Capital</button>
+    <div class="panel-body">
+      <p class="panel-desc">Edita tu capital disponible libremente. Este valor se actualiza también cuando agregas préstamos o se completan pagos.</p>
+      <div class="field">
+        <label>Capital disponible (S/)</label>
+        <input type="number" id="inputCapitalPanel" placeholder="0.00" min="0" step="0.01" />
+      </div>
+      <button class="btn-guardar" id="btnGuardarCapitalPanel">💾 GUARDAR CAPITAL</button>
+
+      <div class="panel-divider"></div>
+      <div class="panel-info">
+        <p>📌 El capital baja cuando agregas un préstamo.</p>
+        <p>✅ El capital sube (con ganancia) cuando un préstamo se paga al 100%.</p>
+        <p>🗑 Si eliminas un préstamo activo, el monto vuelve al capital.</p>
       </div>
     </div>
-  </aside>
-  <div id="sidebar-overlay" class="overlay"></div>
+  </div>
 
-  <!-- Contenido Principal -->
-  <main class="main-container">
-    <section class="card summary-card">
-      <h2>Capital Actual</h2>
-      <p id="display-capital" class="capital-amount">$0.00</p>
-    </section>
-
-    <section class="card form-card">
-      <h2>Registrar Nuevo Préstamo</h2>
-      <form id="loan-form">
-        <div class="form-group">
-          <label for="cliente">Nombre del Cliente:</label>
-          <input type="text" id="cliente" required placeholder="Ej. Juan Pérez">
+  <!-- MODAL NUEVO PRÉSTAMO -->
+  <div id="modalPrestamo" class="modal hidden">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2>NUEVO PRÉSTAMO</h2>
+        <button class="btn-cerrar" id="btnCerrarModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <label>Nombre del deudor</label>
+          <input type="text" id="inputNombre" placeholder="Ej: Juan Pérez" />
         </div>
-        <div class="form-group">
-          <label for="monto">Monto del Préstamo:</label>
-          <input type="number" id="monto" step="0.01" required placeholder="Ej. 1500">
+        <div class="field-row">
+          <div class="field">
+            <label>Monto prestado (S/)</label>
+            <input type="number" id="inputMonto" placeholder="500" min="1" />
+          </div>
+          <div class="field">
+            <label>Fecha del préstamo</label>
+            <input type="date" id="inputFecha" />
+          </div>
         </div>
-        <button type="submit" class="btn-primary">Registrar Préstamo</button>
-      </form>
-    </section>
+        <div class="field-row">
+          <div class="field">
+            <label>Interés (%)</label>
+            <input type="number" id="inputInteres" placeholder="0" min="0" max="100" />
+          </div>
+          <div class="field">
+            <label>N° de cuotas</label>
+            <input type="number" id="inputCuotas" placeholder="1" min="1" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Notas (opcional)</label>
+          <textarea id="inputNotas" placeholder="Garantía, motivo del préstamo, etc."></textarea>
+        </div>
+        <div class="resumen-cuota" id="resumenCuota"></div>
+        <button class="btn-guardar" id="btnGuardar">💾 GUARDAR PRÉSTAMO</button>
+      </div>
+    </div>
+  </div>
 
-    <section class="card table-card">
-      <h2>Historial de Préstamos</h2>
-      <table id="loans-table">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Cliente</th>
-            <th>Monto</th>
-          </tr>
-        </thead>
-        <tbody id="loans-tbody">
-          <!-- Se llena dinámicamente -->
-        </tbody>
-      </table>
-    </section>
+  <!-- MODAL DETALLE -->
+  <div id="modalDetalle" class="modal hidden">
+    <div class="modal-box modal-box-wide">
+      <div class="modal-header">
+        <h2 id="detalleTitulo">DETALLE</h2>
+        <button class="btn-cerrar" id="btnCerrarDetalle">✕</button>
+      </div>
+      <div class="modal-body" id="detalleBody"></div>
+    </div>
+  </div>
+
+  <!-- MODAL PAGO -->
+  <div id="modalPago" class="modal hidden">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2>REGISTRAR PAGO</h2>
+        <button class="btn-cerrar" id="btnCerrarPago">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <label>Monto pagado (S/)</label>
+          <input type="number" id="inputPagoMonto" placeholder="0" min="1" />
+        </div>
+        <div class="field">
+          <label>Fecha del pago</label>
+          <input type="date" id="inputPagoFecha" />
+        </div>
+        <div class="field">
+          <label>Nota (opcional)</label>
+          <input type="text" id="inputPagoNota" placeholder="Ej: Cuota 1" />
+        </div>
+        <button class="btn-guardar" id="btnGuardarPago">✅ CONFIRMAR PAGO</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <!-- HEADER -->
+  <header>
+    <div class="header-inner">
+      <div class="logo-wrap">
+        <span class="logo-icon">💰</span>
+        <div class="logo-text">
+          <span class="logo-prestamo">PRESTAMO</span>
+          <span class="logo-ley">LEY</span>
+        </div>
+      </div>
+      <div class="header-stats">
+        <div class="stat-pill">
+          <span class="stat-label">CAPITAL DISPONIBLE</span>
+          <span class="stat-val green" id="statCapital">S/ 0.00</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-label">EN CALLE</span>
+          <span class="stat-val red" id="statEnCalle">S/ 0.00</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-label">CAPITAL TOTAL</span>
+          <span class="stat-val" id="statCapitalTotal">S/ 0.00</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="btn-nuevo" id="btnNuevo">+ NUEVO PRÉSTAMO</button>
+        <button class="btn-hamburguesa" id="btnHamburguesa">☰</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- FILTROS -->
+  <div class="filtros-bar">
+    <div class="filtros-inner">
+      <button class="filtro-btn" data-filtro="todos">TODOS</button>
+      <button class="filtro-btn active" data-filtro="activo">ACTIVOS</button>
+      <button class="filtro-btn" data-filtro="pagado">PAGADOS</button>
+      <input type="text" id="buscador" placeholder="🔍 Buscar por nombre..." />
+    </div>
+  </div>
+
+  <main>
+    <div id="listaVacia" class="lista-vacia hidden">
+      <div class="vacio-icon">📋</div>
+      <p>No hay préstamos activos.</p>
+      <p>Haz clic en <strong>+ NUEVO PRÉSTAMO</strong> para empezar.</p>
+    </div>
+    <div class="prestamos-grid" id="prestamosGrid"></div>
   </main>
 
-  <script src="app.js"></script>
+  <footer>
+    <p>PrestamoLey · Tus datos se sincronizan en la nube automáticamente</p>
+  </footer>
+
+  <script type="module" src="firebase.js"></script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>
